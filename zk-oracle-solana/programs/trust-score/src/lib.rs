@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use std::collections::HashMap;
 
-declare_id!("TrustScoreProgram111111111111111111111111111111");
+declare_id!("TruScoRELv578LhGMpGNcvp4CyuKkrckx3JZ1zPkp"); // Valid 32-byte ID
 
 #[program]
 pub mod trust_score_program {
