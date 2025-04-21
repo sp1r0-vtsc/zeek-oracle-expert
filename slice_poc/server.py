@@ -57,6 +57,10 @@ async def serve_index():
 async def serve_network():
     """Serve the advanced network dashboard."""
     return FileResponse("static/network.html")
+@app.get("/documentation", response_class=HTMLResponse)
+async def serve_documentation():
+    """Serve the project dashboard and interactive documentation page."""
+    return FileResponse("static/docs.html")
 
 @app.post("/upload")
 async def upload_pdf(file: UploadFile = File(...), depth: int = 1):

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Project Dashboard</title>
+  <style>
+    body { font-family: sans-serif; margin: 20px; }
+    details { margin-bottom: 12px; }
+    summary { font-weight: bold; cursor: pointer; }
+    pre { background: #f4f4f4; padding: 10px; border-radius: 4px; overflow-x: auto; }
+    table { border-collapse: collapse; width: 100%; margin-top: 8px; }
+    th, td { border: 1px solid #ccc; padding: 8px; }
+    th { background: #eee; }
+    .status-yes { color: green; font-weight: bold; }
+    .status-no { color: red; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>PDF Citation Slice POC – Project Dashboard</h1>
+  <details open>
+    <summary>Project Summary</summary>
+    <ul>
+      <li>Minimal prototype for end-to-end PDF citation extraction pipeline</li>
+      <li>Upload PDF → extract URLs, DOIs, ISBNs → build citation graph → interactive visualization</li>
+      <li>2D (D3.js) and 3D (3d-force-graph) clients in the browser</li>
+      <li>Server powered by FastAPI, using PyPDF2, httpx, and optional online spidering</li>
+    </ul>
+  </details>
+  <details>
+    <summary>Endpoints &amp; Functionality</summary>
+    <table>
+      <thead>
+        <tr><th>Method</th><th>Path</th><th>Description</th><th>Tested</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>GET</td><td>/</td><td>Serve 2D visualization (static/index.html)</td><td><span class="status-yes">Yes</span></td></tr>
+        <tr><td>GET</td><td>/network</td><td>Serve 3D network dashboard (static/network.html)</td><td><span class="status-yes">Yes</span></td></tr>
+        <tr><td>POST</td><td>/upload?depth=N</td><td>Upload PDF and return citation graph JSON</td><td><span class="status-yes">Manual via UI; no automated tests</span></td></tr>
+        <tr><td>GET</td><td>/isbn/{isbn}</td><td>Fetch ISBN metadata from OpenLibrary</td><td><span class="status-no">No</span></td></tr>
+      </tbody>
+    </table>
+  </details>
+  <details>
+    <summary>Testing Status</summary>
+    <ul>
+      <li>No automated tests currently exist</li>
+      <li>Manual tests performed via sample PDF (test.pdf) and UI drag &amp; drop</li>
+      <li>Recommended: add unit tests for PDF parsing, regex extraction, API endpoints</li>
+    </ul>
+  </details>
+  <details>
+    <summary>Available Commands</summary>
+    <pre>
+# Setup
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# Run server
+uvicorn server:app --reload
+
+# Upload PDF (depth=1)
+curl -F "file=@test.pdf" "http://127.0.0.1:8000/upload?depth=1"
+
+# Fetch ISBN metadata
+curl "http://127.0.0.1:8000/isbn/9781451648539"
+
+# Open 2D UI
+open "http://127.0.0.1:8000/"
+
+# Open 3D Network Dashboard
+open "http://127.0.0.1:8000/network"
+    </pre>
+  </details>
+</body>
+</html>

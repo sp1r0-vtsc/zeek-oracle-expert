@@ -38,4 +38,11 @@ By default, the static client is served at http://127.0.0.1:8000/. Open that URL
 
 ## Notes
 - This POC uses simple regex-based parsing (restricted to the References/Bibliography section when detected) and PyPDF2 for text extraction. Swap in a GROBID client or other parser for more robust citation parsing.
-- Only single-level extraction is performed (no deep spidering).
++ Only single-level extraction is performed (no deep spidering).
+  
+## Project Dashboard
+
+An interactive project dashboard is available at the `/documentation` endpoint (or via `static/docs.html`). It provides an evolving overview of:
+  - Available API endpoints and functionality
+  - Testing status and coverage notes
+  - Ready-to-use commands for exercising the service
