@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>PDF Citation Slice POC</title>
+  <style>
+    #drop_zone {
+      width: 90%; max-width:500px;
+      height: 150px;
+      margin: 20px auto;
+      border: 2px dashed #888;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #888;
+    }
+    #progress {
+      width: 90%; max-width:500px;
+      margin: 10px auto;
+      display: none;
+    }
+    #output {
+      white-space: pre-wrap;
+      width: 90%; max-width:800px;
+      margin: 10px auto;
+    }
+    #graph {
+      width: 800px;
+      height: calc(100vh - 200px);
+      margin: 20px auto;
+      border: 1px solid #ccc;
+    }
+    /* Controls panel above graph */
+    #controls {
+      display: flex;
+      gap: 20px;
+      margin: 10px auto;
+      width: 90%;
+      max-width: 800px;
+      align-items: center;
+      justify-content: flex-start;
+    }
+  </style>
+</head>
+<body>
+  <h1 style="text-align:center;">PDF Citation Slice POC</h1>
+  <div id="controls">
+    <div id="drop_zone">Drop PDF file here</div>
+    <progress id="progress" max="100" value="0"></progress>
+    <label>Depth:
+      <input type="number" id="depth" min="0" max="5" value="1" style="width:50px;"/>
+    </label>
+  </div>
+  <svg id="graph" width="800" height="500"></svg>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script>
+  const dropZone = document.getElementById('drop_zone');
+  const progress = document.getElementById('progress');
+  // const output removed
+  const svg = d3.select('#graph');
+  const width = +svg.attr('width');
+  const height = +svg.attr('height');
+
+  dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.style.borderColor = '#00a';
+  });
+  dropZone.addEventListener('dragleave', () => {
+    dropZone.style.borderColor = '#888';
+  });
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.style.borderColor = '#888';
+    const file = e.dataTransfer.files[0];
+    if (!file || file.type !== 'application/pdf') {
+      alert('Please drop a PDF file.');
+      return;
+    }
+    uploadFile(file);
+  });
+
+  async function uploadFile(file) {
+    progress.style.display = 'block';
+    progress.value = 0;
+    // clear output removed
+    svg.selectAll('*').remove();
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // Include depth parameter from input
+    const depthVal = document.getElementById('depth').value;
+    const response = await fetch(`/upload?depth=${depthVal}`, {
+      method: 'POST',
+      body: formData,
+    });
+    if (!response.ok) {
+      const err = await response.json();
+      alert('Error: ' + (err.error || response.statusText));
+      progress.style.display = 'none';
+      return;
+    }
+    const data = await response.json();
+    progress.style.display = 'none';
+    // output display removed
+    renderGraph(data);
+  }
+
+  function renderGraph(data) {
+    const nodes = data.nodes;
+    const links = data.edges.map(e => Object.assign({}, e));
+
+    const simulation = d3.forceSimulation(nodes)
+      .force('link', d3.forceLink(links).id(d => d.id).distance(100))
+      .force('charge', d3.forceManyBody().strength(-300))
+      .force('x', d3.forceX().x(d => d.type === 'document' ? width - 50 : 50).strength(1))
+      .force('y', d3.forceY().y(height / 2).strength(0.1));
+
+    svg.attr('viewBox', [0, 0, width, height]);
+
+    const link = svg.append('g')
+      .attr('stroke', '#999')
+      .selectAll('line')
+      .data(links)
+      .join('line')
+      .attr('stroke-width', 1.5);
+
+    const node = svg.append('g')
+      .attr('stroke', '#fff')
+      .attr('stroke-width', 1.5)
+      .selectAll('circle')
+      .data(nodes)
+      .join('circle')
+      .attr('r', 10)
+      .attr('fill', d => {
+        if (d.type === 'document') return '#f00';
+        if (d.type === 'online_source') return '#00f';
+        if (d.type === 'offline_source') return '#0a0';
+        if (d.type === 'pruned_online_source') return '#888';
+        return '#ccc';
+      })
+      .call(d3.drag()
+        .on('start', dragstarted)
+        .on('drag', dragged)
+        .on('end', dragended)
+      );
+
+    const label = svg.append('g')
+      .selectAll('text')
+      .data(nodes)
+      .join('text')
+      .text(d => d.id)
+      .attr('x', 12)
+      .attr('y', '0.31em')
+      .style('font-size', '10px');
+
+    simulation.on('tick', () => {
+      link
+        .attr('x1', d => d.source.x)
+        .attr('y1', d => d.source.y)
+        .attr('x2', d => d.target.x)
+        .attr('y2', d => d.target.y);
+      node
+        .attr('cx', d => d.x)
+        .attr('cy', d => d.y);
+      label
+        .attr('x', d => d.x)
+        .attr('y', d => d.y);
+    });
+
+    function dragstarted(event, d) {
+      if (!event.active) simulation.alphaTarget(0.3).restart();
+      d.fx = d.x;
+      d.fy = d.y;
+    }
+    function dragged(event, d) {
+      d.fx = event.x;
+      d.fy = event.y;
+    }
+    function dragended(event, d) {
+      if (!event.active) simulation.alphaTarget(0);
+      d.fx = null;
+      d.fy = null;
+    }
+  }
+
+  // Render a sample graph on initial load for demonstration
+  const sampleData = {
+    nodes: [
+      { id: 'document', label: 'SampleDoc', type: 'document' },
+      { id: 'url:http://example.com', label: 'http://example.com', type: 'online_source' }
+    ],
+    edges: [
+      { source: 'document', target: 'url:http://example.com' }
+    ]
+  };
+  renderGraph(sampleData);
+
+  </script>
+</body>
+</html>
