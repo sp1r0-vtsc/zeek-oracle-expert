@@ -4,7 +4,7 @@
 
 import { Router, Request, Response, Application } from 'express';
 import { Logger } from 'winston';
-import { TrustScorer, AccuracyHistory, TrustScoreParams } from '../services/trustScorer';
+import { TrustScorer, TrustScoreParams } from '../services/trustScorer';
 
 export function configureRoutes(app: Application, trustScorer: TrustScorer, logger: Logger): void {
   const router = Router();
@@ -12,7 +12,7 @@ export function configureRoutes(app: Application, trustScorer: TrustScorer, logg
   /**
    * Health check endpoint
    */
-  router.get('/health', (req: Request, res: Response) => {
+  router.get('/health', (_req: Request, res: Response) => {
     res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
   });
 
@@ -50,7 +50,7 @@ export function configureRoutes(app: Application, trustScorer: TrustScorer, logg
       // Calculate trust score
       const score = trustScorer.calculateTrustScore(params, weights);
       
-      res.status(200).json({
+      return res.status(200).json({
         score,
         params: {
           ...params,
@@ -60,7 +60,7 @@ export function configureRoutes(app: Application, trustScorer: TrustScorer, logg
       });
     } catch (error) {
       logger.error('Error calculating trust score', { error });
-      res.status(500).json({ error: `Failed to calculate trust score: ${error}` });
+      return res.status(500).json({ error: `Failed to calculate trust score: ${error}` });
     }
   });
 
@@ -86,7 +86,7 @@ export function configureRoutes(app: Application, trustScorer: TrustScorer, logg
         evidenceWeight
       );
       
-      res.status(200).json({
+      return res.status(200).json({
         previousScore: currentScore,
         newEvidence,
         evidenceWeight: evidenceWeight || 0.1,
@@ -94,7 +94,7 @@ export function configureRoutes(app: Application, trustScorer: TrustScorer, logg
       });
     } catch (error) {
       logger.error('Error updating trust score', { error });
-      res.status(500).json({ error: `Failed to update trust score: ${error}` });
+      return res.status(500).json({ error: `Failed to update trust score: ${error}` });
     }
   });
 
@@ -124,7 +124,7 @@ export function configureRoutes(app: Application, trustScorer: TrustScorer, logg
         previousSubmission
       );
       
-      res.status(200).json({
+      return res.status(200).json({
         previousFactor: currentFactor,
         newSubmission,
         previousSubmission,
@@ -132,7 +132,7 @@ export function configureRoutes(app: Application, trustScorer: TrustScorer, logg
       });
     } catch (error) {
       logger.error('Error updating consistency factor', { error });
-      res.status(500).json({ error: `Failed to update consistency factor: ${error}` });
+      return res.status(500).json({ error: `Failed to update consistency factor: ${error}` });
     }
   });
 
@@ -157,14 +157,14 @@ export function configureRoutes(app: Application, trustScorer: TrustScorer, logg
         isValidated
       );
       
-      res.status(200).json({
+      return res.status(200).json({
         previousRate: currentRate,
         isValidated,
         updatedRate
       });
     } catch (error) {
       logger.error('Error updating validation rate', { error });
-      res.status(500).json({ error: `Failed to update validation rate: ${error}` });
+      return res.status(500).json({ error: `Failed to update validation rate: ${error}` });
     }
   });
 
@@ -192,7 +192,7 @@ export function configureRoutes(app: Application, trustScorer: TrustScorer, logg
         daysToPredict
       );
       
-      res.status(200).json({
+      return res.status(200).json({
         historyPoints: history.length,
         daysToPredict: daysToPredict || 30,
         latestScore: history.length > 0 ? history[history.length - 1].score : null,
@@ -200,7 +200,7 @@ export function configureRoutes(app: Application, trustScorer: TrustScorer, logg
       });
     } catch (error) {
       logger.error('Error predicting trust score trend', { error });
-      res.status(500).json({ error: `Failed to predict trust score trend: ${error}` });
+      return res.status(500).json({ error: `Failed to predict trust score trend: ${error}` });
     }
   });
 

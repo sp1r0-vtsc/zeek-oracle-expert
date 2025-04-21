@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Advanced Network Dashboard</title>
+  <style>
+    body { font-family: sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; }
+    #toolbar { display: flex; align-items: center; padding: 10px; background: #f0f0f0; }
+    #drop_zone { width: 150px; height: 40px; border: 2px dashed #999; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #666; cursor: pointer; }
+    #depth { margin-left: 10px; width: 50px; }
+    #stats { margin-left: auto; font-size: 14px; }
+    #log { height: 100px; overflow-y: auto; background: #222; color: #0f0; padding: 5px; font-family: monospace; font-size: 12px; }
+    #container { flex: 1; display: flex; }
+    #cy { flex: 1; position: relative; }
+    #details { width: 250px; border-left: 1px solid #ddd; padding: 10px; overflow-y: auto; background: #fafafa; }
+    #details h2 { margin-top: 0; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <div id="toolbar">
+    <div id="drop_zone">Drop PDF here</div>
+    <label>Depth: <input type="number" id="depth" min="0" max="5" value="1"/></label>
+    <div id="stats">Nodes: <span id="nodeCount">0</span>, Edges: <span id="edgeCount">0</span></div>
+  </div>
+  <div id="log"></div>
+  <div id="container">
+    <div id="cy"></div>
+    <div id="details">
+      <h2>Node Details</h2>
+      <div id="info">Click a node</div>
+    </div>
+  </div>
+  <!-- Include Three.js and 3D Force Graph for an interactive 3D network -->
+  <script src="https://unpkg.com/three/build/three.min.js"></script>
+  <script src="https://unpkg.com/3d-force-graph/dist/3d-force-graph.min.js"></script>
+  <script>
+    // UI elements
+    const dropZone = document.getElementById('drop_zone');
+    const depthInput = document.getElementById('depth');
+    const nodeCountEl = document.getElementById('nodeCount');
+    const edgeCountEl = document.getElementById('edgeCount');
+    const infoEl = document.getElementById('info');
+    const logEl = document.getElementById('log');
+    function log(msg) {
+      const d = document.createElement('div'); d.textContent = msg;
+      logEl.appendChild(d); logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    // Initialize 3D force graph in the #cy container
+    const Graph3D = ForceGraph3D()
+      (document.getElementById('cy'))
+      .nodeLabel(node => node.title || node.label || node.id)
+      .nodeAutoColorBy('type')
+      .onNodeClick(async node => {
+        // On-demand metadata fetch for ISBN nodes
+        if (node.type === 'offline_source' && node.id.startsWith('isbn:') && !node.title) {
+          const isbnVal = node.id.split(':')[1];
+          log(`Fetching metadata for ISBN ${isbnVal}...`);
+          try {
+            const res = await fetch(`/isbn/${isbnVal}`);
+            if (res.ok) {
+              const meta = await res.json();
+              node.title = meta.title;
+              node.authors = meta.authors;
+              node.publishers = meta.publishers;
+              // Refresh labels
+              Graph3D.nodeLabel(n => n.title || n.label || n.id);
+              log(`Metadata loaded for ISBN ${isbnVal}`);
+            } else {
+              const err = await res.json();
+              log(`ISBN fetch error: ${err.error || res.statusText}`);
+            }
+          } catch (e) {
+            log(`ISBN fetch exception: ${e}`);
+          }
+        }
+        // Populate details panel with current (possibly enriched) data
+        const d = node;
+        let html = `<p><strong>ID:</strong> ${d.id}</p>`;
+        html += `<p><strong>Label:</strong> ${d.title || d.label}</p>`;
+        html += `<p><strong>Type:</strong> ${d.type}</p>`;
+        if (d.title) html += `<p><strong>Title:</strong> ${d.title}</p>`;
+        if (d.authors) html += `<p><strong>Authors:</strong> ${d.authors.join(', ')}</p>`;
+        if (d.publishers) html += `<p><strong>Publishers:</strong> ${d.publishers.join(', ')}</p>`;
+        infoEl.innerHTML = html;
+      });
+
+    // Attempt to load cached graph on startup
+    (function loadCached() {
+      try {
+        const cached = localStorage.getItem('citationGraph');
+        if (cached) {
+          const data = JSON.parse(cached);
+          log(`Using cached graph: ${data.nodes.length} nodes, ${data.edges.length} edges`);
+          // Display stats
+          nodeCountEl.textContent = data.stats?.counts.total_nodes ?? data.nodes.length;
+          edgeCountEl.textContent = data.stats?.counts.total_edges ?? data.edges.length;
+          infoEl.innerHTML = '<p>Click a node to see details</p>';
+          Graph3D.graphData({ nodes: data.nodes, links: data.edges.map(e => ({ source: e.source, target: e.target })) });
+          // Re-center on document node after layout
+          Graph3D.onEngineStop(() => {
+            const doc = Graph3D.graphData().nodes.find(n => n.type === 'document');
+            if (doc) Graph3D.centerAt(doc.x, doc.y, doc.z, 1000);
+          });
+        }
+      } catch (e) {}
+    })();
+    // Drag-and-drop to upload PDF and build graph
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.style.borderColor = '#00a'; });
+    dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = '#999'; });
+    dropZone.addEventListener('drop', async e => {
+      e.preventDefault(); dropZone.style.borderColor = '#999';
+      const file = e.dataTransfer.files[0];
+      if (!file || file.type !== 'application/pdf') { alert('Please drop a PDF file.'); return; }
+      const depth = depthInput.value;
+      const formData = new FormData(); formData.append('file', file);
+      log(`Uploading PDF (depth=${depth})...`);
+      const res = await fetch(`/upload?depth=${depth}`, { method: 'POST', body: formData });
+      if (!res.ok) { const err = await res.json(); alert('Error: ' + (err.error || res.statusText)); return; }
+      const data = await res.json();
+      log(`Received graph: ${data.nodes.length} nodes, ${data.edges.length} edges`);
+      // Cache for reuse
+      try { localStorage.setItem('citationGraph', JSON.stringify(data)); } catch (e) {}
+      // Display detailed timing and breakdown stats if available
+      if (data.stats) {
+        log(`PDF parse: ${data.stats.pdf_parse_ms} ms`);
+        log(`Initial citations: ${data.stats.initial_citations_ms} ms`);
+        log(`Crawl time: ${data.stats.crawl_ms} ms`);
+        log(`Total processing: ${data.stats.total_ms} ms`);
+        const byType = data.stats.counts.by_type;
+        Object.entries(byType).forEach(([type, cnt]) => log(`Nodes of type '${type}': ${cnt}`));
+      }
+      nodeCountEl.textContent = data.stats?.counts.total_nodes ?? data.nodes.length;
+      edgeCountEl.textContent = data.stats?.counts.total_edges ?? data.edges.length;
+      infoEl.innerHTML = '<p>Click a node to see details</p>';
+      Graph3D.graphData({ nodes: data.nodes, links: data.edges.map(e => ({ source: e.source, target: e.target })) });
+      // Re-center on document node after layout
+      Graph3D.onEngineStop(() => {
+        const doc = Graph3D.graphData().nodes.find(n => n.type === 'document');
+        if (doc) Graph3D.centerAt(doc.x, doc.y, doc.z, 1000);
+      });
+    });
+
+    // Initial prompt
+    infoEl.innerHTML = '<p>Drop a PDF to begin</p>';
+  </script>
+</body>
+</html>

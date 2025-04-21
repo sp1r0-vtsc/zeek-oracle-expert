@@ -12,7 +12,7 @@ export function configureRoutes(app: Application, zkProofService: ZKProofService
   /**
    * Health check endpoint
    */
-  router.get('/health', (req: Request, res: Response) => {
+  router.get('/health', (_req: Request, res: Response) => {
     res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
   });
 
@@ -34,7 +34,7 @@ export function configureRoutes(app: Application, zkProofService: ZKProofService
         privateInputs || {}
       );
       
-      res.status(200).json({
+      return res.status(200).json({
         proof: result.proof.toString('base64'),
         publicInputs: result.publicInputs.toString('base64'),
         circuitType: CircuitType.DATA_VALIDITY,
@@ -42,7 +42,7 @@ export function configureRoutes(app: Application, zkProofService: ZKProofService
       });
     } catch (error) {
       logger.error('Error in validity proof endpoint', { error });
-      res.status(500).json({ error: `Failed to generate validity proof: ${error}` });
+      return res.status(500).json({ error: `Failed to generate validity proof: ${error}` });
     }
   });
 
@@ -67,7 +67,7 @@ export function configureRoutes(app: Application, zkProofService: ZKProofService
         minRequirements || {}
       );
       
-      res.status(200).json({
+      return res.status(200).json({
         proof: result.proof.toString('base64'),
         publicInputs: result.publicInputs.toString('base64'),
         circuitType: CircuitType.IDENTITY,
@@ -75,7 +75,7 @@ export function configureRoutes(app: Application, zkProofService: ZKProofService
       });
     } catch (error) {
       logger.error('Error in credential proof endpoint', { error });
-      res.status(500).json({ error: `Failed to generate credential proof: ${error}` });
+      return res.status(500).json({ error: `Failed to generate credential proof: ${error}` });
     }
   });
 
@@ -99,7 +99,7 @@ export function configureRoutes(app: Application, zkProofService: ZKProofService
         validationResult
       );
       
-      res.status(200).json({
+      return res.status(200).json({
         proof: result.proof.toString('base64'),
         publicInputs: result.publicInputs.toString('base64'),
         circuitType: CircuitType.VALIDATION,
@@ -107,7 +107,7 @@ export function configureRoutes(app: Application, zkProofService: ZKProofService
       });
     } catch (error) {
       logger.error('Error in validation proof endpoint', { error });
-      res.status(500).json({ error: `Failed to generate validation proof: ${error}` });
+      return res.status(500).json({ error: `Failed to generate validation proof: ${error}` });
     }
   });
 
@@ -133,14 +133,14 @@ export function configureRoutes(app: Application, zkProofService: ZKProofService
         circuitType
       );
       
-      res.status(200).json({
+      return res.status(200).json({
         isValid,
         circuitType,
         proofSystem
       });
     } catch (error) {
       logger.error('Error in verify proof endpoint', { error });
-      res.status(500).json({ error: `Failed to verify proof: ${error}` });
+      return res.status(500).json({ error: `Failed to verify proof: ${error}` });
     }
   });
 
@@ -148,7 +148,8 @@ export function configureRoutes(app: Application, zkProofService: ZKProofService
   app.use('/api/v1', router);
   
   // Error handling middleware
-  app.use((err: any, req: Request, res: Response, next: any) => {
+  // Error handling middleware (note: use underscores for unused parameters)
+  app.use((err: any, _req: Request, res: Response, _next: any) => {
     logger.error('Unhandled error', { error: err });
     res.status(500).json({ error: 'Internal server error' });
   });

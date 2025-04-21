@@ -4,7 +4,7 @@
  */
 
 import { Logger } from 'winston';
-import * as math from 'mathjs';
+// import * as math from 'mathjs'; // Unused import, removed to satisfy TypeScript rules
 
 // Define interfaces
 export interface AccuracyHistory {
@@ -63,7 +63,7 @@ export class TrustScorer {
     });
     
     // Set default values for any missing parameters
-    const baseScore = params.baseScore ?? 500;
+    // Note: baseScore parameter is unused in current algorithm, deprecated
     const accuracyHistory = params.accuracyHistory ?? [];
     const consistencyFactor = params.consistencyFactor ?? 500;
     const validationSuccessRate = params.validationSuccessRate ?? 500;

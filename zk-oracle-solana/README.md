@@ -80,7 +80,8 @@ zk-oracle-solana/
 
 ### Prerequisites
 
-- Solana CLI tools
+- Solana CLI tools  
+## curl --proto '=https' --tlsv1.2 -sSfL https://solana-install.solana.workers.dev | bash
 - Node.js 16+
 - Rust and Cargo
 - Zero-knowledge libraries (specific to implementation)

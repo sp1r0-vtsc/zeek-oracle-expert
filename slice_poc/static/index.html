@@ -5,14 +5,18 @@
   <title>PDF Citation Slice POC</title>
   <style>
     #drop_zone {
-      width: 90%; max-width:500px;
-      height: 150px;
-      margin: 20px auto;
-      border: 2px dashed #888;
+      width: 150px;
+      height: 80px;
+      margin: 0;
+      border: 2px dashed #999;
+      border-radius: 8px;
+      background: #fafafa;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #888;
+      color: #666;
+      font-size: 14px;
+      cursor: pointer;
     }
     #progress {
       width: 90%; max-width:500px;
@@ -25,10 +29,12 @@
       margin: 10px auto;
     }
     #graph {
-      width: 800px;
+      width: 90%;
+      max-width: 800px;
       height: calc(100vh - 200px);
       margin: 20px auto;
-      border: 1px solid #ccc;
+      background: #fff;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
     /* Controls panel above graph */
     #controls {
@@ -38,7 +44,7 @@
       width: 90%;
       max-width: 800px;
       align-items: center;
-      justify-content: flex-start;
+      justify-content: flex-end;
     }
   </style>
 </head>
@@ -46,20 +52,33 @@
   <h1 style="text-align:center;">PDF Citation Slice POC</h1>
   <div id="controls">
     <div id="drop_zone">Drop PDF file here</div>
+    <a href="/network" style="margin-left:20px; text-decoration:none; font-weight:bold;">Advanced Network Dashboard</a>
     <progress id="progress" max="100" value="0"></progress>
     <label>Depth:
       <input type="number" id="depth" min="0" max="5" value="1" style="width:50px;"/>
     </label>
+    <button id="snapshot" style="margin-left:20px;">Snapshot</button>
   </div>
-  <svg id="graph" width="800" height="500"></svg>
+  <div id="summary" style="width:90%; max-width:800px; margin:10px auto; font-size:14px; color:#333;"></div>
+  <svg id="graph"></svg>
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <script>
   const dropZone = document.getElementById('drop_zone');
   const progress = document.getElementById('progress');
   // const output removed
   const svg = d3.select('#graph');
-  const width = +svg.attr('width');
-  const height = +svg.attr('height');
+  // Container for pan & zoom
+  const container = svg.append('g');
+  // Zoom and pan behavior
+  const zoom = d3.zoom()
+    .scaleExtent([0.2, 5])
+    .on('zoom', event => { container.attr('transform', event.transform); });
+  svg.call(zoom);
+  // Helper to get SVG dimensions
+  function getDimensions() {
+    const bbox = svg.node().getBoundingClientRect();
+    return { width: bbox.width, height: bbox.height };
+  }
 
   dropZone.addEventListener('dragover', (e) => {
     e.preventDefault();
@@ -82,8 +101,8 @@
   async function uploadFile(file) {
     progress.style.display = 'block';
     progress.value = 0;
-    // clear output removed
-    svg.selectAll('*').remove();
+    // clear previous graph
+    container.selectAll('*').remove();
 
     const formData = new FormData();
     formData.append('file', file);
@@ -102,11 +121,27 @@
     }
     const data = await response.json();
     progress.style.display = 'none';
-    // output display removed
+    // Render graph and update summary
     renderGraph(data);
+    try {
+      // Cache for reuse
+      localStorage.setItem('citationGraph', JSON.stringify(data));
+    } catch (e) {}
+    // Display stage summary
+    const sum = document.getElementById('summary');
+    if (data.stats && data.stats.counts) {
+      const s = data.stats;
+      sum.textContent = `Nodes: ${s.counts.total_nodes}, Edges: ${s.counts.total_edges}. ` +
+        `Parse: ${s.pdf_parse_ms}ms, Citations: ${s.initial_citations_ms}ms, ` +
+        `Crawl: ${s.crawl_ms}ms, Total: ${s.total_ms}ms.`;
+    } else {
+      sum.textContent = `Nodes: ${data.nodes.length}, Edges: ${data.edges.length}.`;
+    }
   }
 
   function renderGraph(data) {
+    // determine SVG dimensions for force layout
+    const { width, height } = getDimensions();
     const nodes = data.nodes;
     const links = data.edges.map(e => Object.assign({}, e));
 
@@ -118,14 +153,14 @@
 
     svg.attr('viewBox', [0, 0, width, height]);
 
-    const link = svg.append('g')
+    const link = container.append('g')
       .attr('stroke', '#999')
       .selectAll('line')
       .data(links)
       .join('line')
       .attr('stroke-width', 1.5);
 
-    const node = svg.append('g')
+    const node = container.append('g')
       .attr('stroke', '#fff')
       .attr('stroke-width', 1.5)
       .selectAll('circle')
@@ -145,7 +180,7 @@
         .on('end', dragended)
       );
 
-    const label = svg.append('g')
+    const label = container.append('g')
       .selectAll('text')
       .data(nodes)
       .join('text')
@@ -184,17 +219,53 @@
     }
   }
 
-  // Render a sample graph on initial load for demonstration
+  // On load, try to use cached graph; otherwise render sample graph
   const sampleData = {
     nodes: [
       { id: 'document', label: 'SampleDoc', type: 'document' },
       { id: 'url:http://example.com', label: 'http://example.com', type: 'online_source' }
     ],
-    edges: [
-      { source: 'document', target: 'url:http://example.com' }
-    ]
+    edges: [ { source: 'document', target: 'url:http://example.com' } ]
   };
-  renderGraph(sampleData);
+  (function initGraph() {
+    const sum = document.getElementById('summary');
+    try {
+      const cached = localStorage.getItem('citationGraph');
+      if (cached) {
+        const data = JSON.parse(cached);
+        renderGraph(data);
+        // Display summary if stats present
+        if (data.stats && data.stats.counts) {
+          const s = data.stats;
+          sum.textContent = `Nodes: ${s.counts.total_nodes}, Edges: ${s.counts.total_edges}. ` +
+            `Parse: ${s.pdf_parse_ms}ms, Citations: ${s.initial_citations_ms}ms, ` +
+            `Crawl: ${s.crawl_ms}ms, Total: ${s.total_ms}ms.`;
+        }
+        return;
+      }
+    } catch (e) {}
+    // Fallback sample
+    renderGraph(sampleData);
+  })();
+  // Snapshot: download current SVG graph
+  document.getElementById('snapshot').addEventListener('click', () => {
+    const svgEl = document.getElementById('graph');
+    const serializer = new XMLSerializer();
+    let source = serializer.serializeToString(svgEl);
+    // Add namespace if missing
+    if (!source.match(/^<svg[^>]+xmlns="http:\/\/www\.w3\.org\/2000\/svg"/)) {
+      source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+    }
+    const blob = new Blob([source], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'citation-graph.svg';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
 
   </script>
 </body>

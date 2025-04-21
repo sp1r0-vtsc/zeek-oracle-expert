@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>zk-oracle-solana Project Overview</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1 { color: #333; }
+    .category { margin-bottom: 20px; }
+    .module { margin-left: 20px; margin-bottom: 15px; }
+    .status { font-weight: bold; margin-left: 5px; }
+    .status.pass { color: green; }
+    .status.fail { color: red; }
+    .command-btn { background: #f5f5f5; border: none; padding: 8px 12px; margin: 4px; border-radius: 4px; cursor: pointer; }
+    #search { width: 100%; padding: 10px; margin-bottom: 20px; font-size: 16px; }
+  </style>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const modulesData = [
+        {
+          category: "Off-Chain Services",
+          modules: [
+            {
+              name: "ZK Proof Service",
+              endpoints: [
+                "POST /api/v1/proofs/validity",
+                "POST /api/v1/proofs/credential",
+                "POST /api/v1/proofs/validation",
+                "POST /api/v1/proofs/verify"
+              ],
+              commands: ["npm run dev", "npm run build", "npm test"]
+            },
+            {
+              name: "Trust Scorer Service",
+              endpoints: [
+                "GET /api/v1/trust-score/health",
+                "POST /api/v1/trust-score/calculate",
+                "POST /api/v1/trust-score/update",
+                "POST /api/v1/trust-score/consistency",
+                "POST /api/v1/trust-score/validation-rate",
+                "POST /api/v1/trust-score/predict-trend"
+              ],
+              commands: ["npm run dev", "npm run build", "npm test"]
+            },
+            {
+              name: "Cross Validator Service",
+              endpoints: [
+                "GET /api/v1/validate/health",
+                "POST /api/v1/validate/aggregate",
+                "POST /api/v1/validate/request",
+                "POST /api/v1/validate/detect-collusion",
+                "POST /api/v1/validate/generate-proof",
+                "POST /api/v1/validate/simulate"
+              ],
+              commands: ["npm run dev", "npm run build", "npm test"]
+            },
+            {
+              name: "Library Attestor Service",
+              endpoints: [
+                "GET /health",
+                "GET /public-key",
+                "GET /attestations/library/:isbn",
+                "GET /attestations/stream"
+              ],
+              commands: ["library-attestor-cli -i input.json [-o output.json] [-b baseUrl]"]
+            }
+          ]
+        },
+        {
+          category: "Web Application",
+          modules: [
+            {
+              name: "React UI",
+              endpoints: ["N/A (UI)"],
+              commands: ["npm start", "npm run build", "npm test"]
+            }
+          ]
+        },
+        {
+          category: "On-Chain Programs",
+          modules: [
+            {
+              name: "Trust Score Program",
+              endpoints: [
+                "initialize",
+                "record_submission",
+                "update_trust_score",
+                "update_consistency_factor",
+                "update_domain_expertise"
+              ],
+              commands: ["cargo build", "anchor build", "solana program deploy target/deploy/*.so"]
+            }
+          ]
+        }
+      ];
+
+      const statusesData = {
+        "ZK Proof Service": { build: null, test: null },
+        "Trust Scorer Service": { build: null, test: null },
+        "Cross Validator Service": { build: null, test: null },
+        "Library Attestor Service": { build: null, test: null },
+        "React UI": { build: null, test: null },
+        "Trust Score Program": { build: null }
+      };
+
+      const container = document.getElementById('dashboard');
+      modulesData.forEach(section => {
+        const secDiv = document.createElement('div');
+        secDiv.className = 'category';
+        const title = document.createElement('h2');
+        title.textContent = section.category;
+        secDiv.appendChild(title);
+
+        section.modules.forEach(mod => {
+          const modDiv = document.createElement('div');
+          modDiv.className = 'module';
+          const header = document.createElement('h3');
+          header.textContent = mod.name;
+          const status = statusesData[mod.name] || {};
+          const statusSpan = document.createElement('span');
+          statusSpan.innerHTML = `
+            <span class="status ${status.build === 'fail' ? 'fail' : status.build === 'pass' ? 'pass' : ''}">
+              ${status.build ? status.build.toUpperCase() : ''}
+            </span>
+            ${status.test ? `<span class="status ${status.test==='fail'?'fail':'pass'}">${status.test.toUpperCase()}</span>` : ''}
+          `;
+          header.appendChild(statusSpan);
+          modDiv.appendChild(header);
+
+          const epList = document.createElement('ul');
+          mod.endpoints.forEach(ep => {
+            const li = document.createElement('li');
+            li.textContent = ep;
+            epList.appendChild(li);
+          });
+          modDiv.appendChild(epList);
+
+          const cmdDiv = document.createElement('div');
+          mod.commands.forEach(cmd => {
+            const btn = document.createElement('button');
+            btn.className = 'command-btn';
+            btn.textContent = cmd;
+            btn.title = 'Copy command';
+            btn.onclick = () => {
+              navigator.clipboard.writeText(cmd);
+            };
+            cmdDiv.appendChild(btn);
+          });
+          modDiv.appendChild(cmdDiv);
+
+          secDiv.appendChild(modDiv);
+        });
+        container.appendChild(secDiv);
+      });
+
+      document.getElementById('search').addEventListener('input', () => {
+        const filterText = document.getElementById('search').value.toLowerCase();
+        Array.from(container.querySelectorAll('.module')).forEach(modDiv => {
+          modDiv.style.display = modDiv.innerText.toLowerCase().includes(filterText) ? '' : 'none';
+        });
+      });
+    });
+  </script>
+</head>
+<body>
+  <h1>zk-oracle-solana Project Overview</h1>
+  <input type="text" id="search" placeholder="Filter modules..." />
+  <div id="dashboard"></div>
+</body>
+</html>

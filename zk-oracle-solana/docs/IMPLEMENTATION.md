@@ -15,9 +15,10 @@ The Zero-Knowledge Oracle System consists of the following main components:
 
 ### 2. Off-Chain Services
 
-- **ZK Proof Service**: Generates zero-knowledge proofs for various verification needs
-- **Trust Scorer**: Calculates trust scores based on historical performance
-- **Cross Validator**: Aggregates validations from multiple sources with trust-weighted consensus
+ - **ZK Proof Service**: Generates zero-knowledge proofs for various verification needs
+ - **Trust Scorer**: Calculates trust scores based on historical performance
+ - **Cross Validator**: Aggregates validations from multiple sources with trust-weighted consensus
+ - **Library Attestor**: Attests printed-book holdings by ISBN using Open Library data and signs attestations
 
 ### 3. System Architecture Diagrams
 
@@ -107,7 +108,7 @@ solana program deploy target/deploy/trust_score.so
 ### 2. Start Off-Chain Services
 
 ```bash
-# Start ZK Proof Service
+ # Start ZK Proof Service
 cd off-chain/zk-proof-service
 npm run dev
 
@@ -115,8 +116,12 @@ npm run dev
 cd off-chain/trust-scorer
 npm run dev
 
-# Start Cross Validator Service
-cd off-chain/cross-validator
+ # Start Cross Validator Service
+ cd off-chain/cross-validator
+ npm run dev
+
+# Start Library Attestor Service
+cd off-chain/library-attestor
 npm run dev
 ```
 
@@ -151,6 +156,15 @@ The system can be tested through the following methods:
 - **POST /api/v1/validate/request**: Request validations from validators
 - **POST /api/v1/validate/detect-collusion**: Detect potential validator collusion
 - **POST /api/v1/validate/generate-proof**: Generate a consensus proof
+ 
+### Library Attestor Service (Port 3300)
+
+- **GET /health**: Service health check, returns status and timestamp
+- **GET /public-key**: Retrieve the base64-encoded public key for verifying signatures
+- **GET /attestations/library/:isbn**: Fetch an attestation for the given ISBN; returns JSON with `{ isbn, timestamp, holdings, signature }`
+  
+- **CLI tool `library-attestor-cli`**: Batch request library attestations via the command line.  
+  Usage: `npm run cli -- -i <input.json> -o <output.json> -b <baseUrl>`
 
 ## Implementation Details
 

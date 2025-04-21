@@ -46,5 +46,20 @@ module.exports = function override(config) {
   const NodePolyfillPlugin = require("node-polyfill-webpack-plugin");
   config.plugins.push(new NodePolyfillPlugin());
 
+  // Exclude node_modules from source-map-loader to silence missing map warnings
+  if (config.module && Array.isArray(config.module.rules)) {
+    config.module.rules = config.module.rules.map(rule => {
+      // detect rules using source-map-loader
+      const loader = rule.loader || (rule.use && rule.use.loader) || null;
+      const usesArray = Array.isArray(rule.use) ? rule.use : [];
+      const usesLoader = usesArray.some(u => u && u.loader && u.loader.includes('source-map-loader'));
+      if ((loader && loader.includes('source-map-loader')) || usesLoader) {
+        // exclude all node_modules
+        rule.exclude = /node_modules/;
+      }
+      return rule;
+    });
+  }
+
   return config;
 };
