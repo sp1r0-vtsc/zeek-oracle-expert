@@ -1,0 +1,148 @@
+tools:
+  - name: AzureHound
+    path: AzureHound
+    language: Go
+    dependencies:
+      - go.mod
+      - go.sum
+      - Dockerfile
+    entrypoint: main.go
+    description: "Azure environment enumeration tool"
+    incorporate: true
+    wrapper: "build Go binary & invoke via shell subprocess"
+    priority: high
+    notes:
+      - "Provides Dockerfile for containerized execution"
+  - name: Gato-X
+    path: Gato-X
+    language: Python
+    dependencies:
+      - pyproject.toml
+      - setup.cfg
+    entrypoint: CLI (refer to README)
+    description: "Kubernetes resource auditing tool"
+    incorporate: true
+    wrapper: "LangChain Python Tool (module import)"
+    priority: high
+  - name: NTLMRecon
+    path: NTLMRecon
+    language: Go
+    dependencies:
+      - go.mod
+      - go.sum
+    entrypoint: CLI (build via GoReleaser)
+    description: "NTLM authentication analysis tool"
+    incorporate: true
+    wrapper: "build & invoke binary via shell subprocess"
+  - name: PortBender
+    path: PortBender
+    language: unknown
+    dependencies: []
+    entrypoint: none detected
+    description: "Repository contains only documentation/README"
+    incorporate: false
+    notes:
+      - "Requires further analysis to determine tooling"
+  - name: ScoutSuite
+    path: ScoutSuite
+    language: Python
+    dependencies:
+      - requirements.txt
+      - setup.py
+    entrypoint: scout.py
+    description: "Multi-cloud security auditing platform"
+    incorporate: true
+    wrapper: "LangChain Python Tool (module import)"
+  - name: azurehound-scenttrail
+    path: azurehound-scenttrail
+    language: Python
+    dependencies:
+      - setup.py
+      - config.ini.example
+    entrypoint: CLI (azurehound-scenttrail)
+    description: "Post-enumeration analysis companion for AzureHound"
+    incorporate: true
+    wrapper: "LangChain Python Tool"
+  - name: capabilities
+    path: capabilities
+    language: none
+    dependencies: []
+    entrypoint: none
+    description: "Capability matrix / documentation"
+    incorporate: false
+  - name: fingerprintx
+    path: fingerprintx
+    language: Go
+    dependencies:
+      - go.mod
+      - go.sum
+      - Dockerfile
+    entrypoint: CLI (build via Go)
+    description: "Service fingerprinting tool"
+    incorporate: true
+    wrapper: "build & invoke via shell subprocess"
+    priority: high
+  - name: gato
+    path: gato
+    language: Python
+    dependencies:
+      - pyproject.toml
+      - setup.py
+    entrypoint: CLI (refer to README)
+    description: "Internal red-team operations framework"
+    incorporate: true
+    wrapper: "LangChain Python Tool"
+  - name: goffloader
+    path: goffloader
+    language: Go
+    dependencies:
+      - go.mod
+    entrypoint: none detected
+    description: "No root-level code; requires deeper analysis"
+    incorporate: false
+  - name: graphql
+    path: graphql
+    language: Go
+    dependencies:
+      - go.mod
+    entrypoint: library code
+    description: "GraphQL library, not a security tool"
+    incorporate: false
+  - name: konstellation
+    path: konstellation
+    language: Python
+    dependencies:
+      - requirements.txt
+      - Dockerfile
+    entrypoint: konstellation.py
+    description: "Security configuration scanning tool"
+    incorporate: true
+    wrapper: "LangChain Python Tool"
+  - name: missing-cve-nuclei-templates
+    path: missing-cve-nuclei-templates
+    language: data
+    dependencies:
+      - Nuclei templates
+    entrypoint: none
+    description: "Nuclei templates for CVE coverage"
+    incorporate: true
+    wrapper: "Use with Nuclei binary invocation"
+  - name: noseyparker
+    path: noseyparker
+    language: Rust
+    dependencies:
+      - Cargo.toml
+      - Cargo.lock
+    entrypoint: CLI binary
+    description: "AWS footprint enumeration"
+    incorporate: true
+    wrapper: "build Rust binary & invoke via shell subprocess"
+  - name: praetorian-cli
+    path: praetorian-cli
+    language: Python
+    dependencies:
+      - pyproject.toml
+    entrypoint: CLI (praetorian-cli)
+    description: "CLI interface for Praetorian tools"
+    incorporate: true
+    wrapper: "LangChain Python Tool (module import)"
