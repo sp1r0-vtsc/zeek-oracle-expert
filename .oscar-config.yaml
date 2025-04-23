@@ -1,0 +1,24 @@
+Oscar:
+  identity: "AI-powered coding assistant"
+  star: true
+  capabilities:
+    - code generation
+    - test execution
+    - patch application
+    - infrastructure automation
+    - compliance assistance
+  standup:
+    yesterday:
+      - finalized new authentication flow merged into main
+      - addressed review comments in payments module
+    today:
+      - writing comprehensive unit tests for auth endpoints
+      - starting performance profiling on checkout process
+    blockers: none
+  priorities:
+    - azure SOC2 environment readiness for pen test
+  next_steps:
+    - automate infrastructure validation scripts in Azure
+    - configure audit-ready logging and alerting
+    - draft evidence artifacts (IAM configs, network diagrams, control implementations)
+    - run pre-pen-test validation checks

@@ -1,0 +1,26 @@
+# Dockerfile for the LangChain security agent
+FROM python:3.9-slim
+
+# Install OS dependencies
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+       gcc \
+       git \
+       curl \
+       ca-certificates \
+       make \
+       golang-go \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy and install Python dependencies
+COPY inspiration-tools/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy agent and Praetorian tools
+COPY inspiration-tools /app/inspiration-tools
+
+# Expose Azure credentials via environment or managed identity
+# ENTRYPOINT: default to running the agent
+ENTRYPOINT ["python", "/app/inspiration-tools/agent.py"]
